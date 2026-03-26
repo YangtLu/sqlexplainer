@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
 from dataclasses import dataclass, field
@@ -39,6 +38,25 @@ class Config:
     api_key: str
     model: str
     timeout: int = 60
+
+
+def load_config_from_file(config_path: Path) -> Config:
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file does not exist: {config_path}")
+
+    raw_text = config_path.read_text(encoding="utf-8")
+    try:
+        config_data = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid JSON in config file {config_path}: {exc}") from exc
+
+    api_url = config_data.get(
+        "api_url", "https://api.openai.com/v1/chat/completions"
+    )
+    api_key = config_data.get("api_key", "")
+    model = config_data.get("model", "gpt-4o-mini")
+    timeout = int(config_data.get("timeout", 60))
+    return Config(api_url=api_url, api_key=api_key, model=model, timeout=timeout)
 
 
 def normalize_identifier(identifier: str) -> str:
@@ -205,19 +223,9 @@ def parse_args() -> argparse.Namespace:
         help="Output file path for explanation. Default: output/explanation.md",
     )
     parser.add_argument(
-        "--api-url",
-        default=os.getenv("LLM_API_URL", "https://api.openai.com/v1/chat/completions"),
-        help="LLM API endpoint. Can also be set by LLM_API_URL env var.",
-    )
-    parser.add_argument(
-        "--api-key",
-        default=os.getenv("LLM_API_KEY", ""),
-        help="LLM API key. Can also be set by LLM_API_KEY env var.",
-    )
-    parser.add_argument(
-        "--model",
-        default=os.getenv("LLM_MODEL", "gpt-4o-mini"),
-        help="Model name. Can also be set by LLM_MODEL env var.",
+        "--config",
+        default="config/api_config.json",
+        help="JSON config path containing api_url/api_key/model/timeout. Default: config/api_config.json",
     )
     parser.add_argument(
         "--timeout",
@@ -256,22 +264,23 @@ def main() -> int:
         print(messages[1]["content"][:1200])
         return 0
 
-    if not args.api_key:
+    try:
+        config = load_config_from_file(Path(args.config))
+    except (FileNotFoundError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    if not config.api_key:
         print(
-            "Missing API key. Set --api-key or LLM_API_KEY environment variable.",
+            "Missing API key in config file. Please set api_key in your JSON config.",
             file=sys.stderr,
         )
         return 1
 
-    explanation = call_llm_api(
-        Config(
-            api_url=args.api_url,
-            api_key=args.api_key,
-            model=args.model,
-            timeout=args.timeout,
-        ),
-        messages,
-    )
+    if args.timeout:
+        config.timeout = args.timeout
+
+    explanation = call_llm_api(config, messages)
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
