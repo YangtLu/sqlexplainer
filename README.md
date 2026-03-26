@@ -31,6 +31,9 @@ pip install -r requirements.txt
 ├── comments/
 │   ├── student_info.sql   # 表注释与字段注释
 │   └── ...
+├── example/
+│   ├── input1/            # 示例 1（含 query.sql + comments/）
+│   └── input2/            # 示例 2（含 query.sql + comments/）
 └── output/
 ```
 
@@ -67,32 +70,21 @@ python sql_explainer.py --input-dir input --comments-dir comments --dry-run --co
 
 默认读取路径：`config/api_config.json`，也可以通过 `--config` 指定其他文件。
 
-## 两个具体示例
+## 示例文件组织（已按目录提供）
+
+你提到“示例应该直接生成在 input 里面”，仓库现在已内置：
+
+- 默认可直接运行的示例在：
+  - `input/query.sql`
+  - `comments/student_info.sql`
+- 另外在 `example/` 下提供多套示例目录，便于切换且避免冲突：
+  - `example/input1/`（示例 1）
+  - `example/input2/`（示例 2）
 
 ### 示例 1：统计各城市成年学生数量
 
-`input/query.sql`
-```sql
-SELECT city, COUNT(*) AS adult_count
-FROM student_info
-WHERE age >= 18
-GROUP BY city
-ORDER BY adult_count DESC;
-```
-
-`comments/student_info.sql`
-```sql
-COMMENT ON TABLE student_info IS '学生信息表';
-COMMENT ON COLUMN student_info.id IS '学号';
-COMMENT ON COLUMN student_info.name IS '姓名';
-COMMENT ON COLUMN student_info.age IS '年龄';
-COMMENT ON COLUMN student_info.city IS '城市';
-```
-
-运行：
-```bash
-python sql_explainer.py --input-dir input --comments-dir comments --config config/api_config.local.json
-```
+- SQL：`example/input1/query.sql`
+- 注释：`example/input1/comments/student_info.sql`
 
 预期解释重点：
 - 查询目标：按城市统计成年学生人数；
@@ -101,34 +93,27 @@ python sql_explainer.py --input-dir input --comments-dir comments --config confi
 
 ### 示例 2：找出每个班级平均成绩最高的前 3 个班
 
-`input/query.sql`
-```sql
-SELECT class_name, AVG(score) AS avg_score
-FROM exam_scores
-WHERE exam_term = '2025-Fall'
-GROUP BY class_name
-ORDER BY avg_score DESC
-LIMIT 3;
-```
-
-`comments/exam_scores.sql`
-```sql
-COMMENT ON TABLE exam_scores IS '考试成绩明细';
-COMMENT ON COLUMN exam_scores.student_id IS '学生ID';
-COMMENT ON COLUMN exam_scores.class_name IS '班级名称';
-COMMENT ON COLUMN exam_scores.score IS '考试分数';
-COMMENT ON COLUMN exam_scores.exam_term IS '考试学期';
-```
-
-运行：
-```bash
-python sql_explainer.py --input-dir input --comments-dir comments --config config/api_config.local.json
-```
+- SQL：`example/input2/query.sql`
+- 注释：`example/input2/comments/exam_scores.sql`
 
 预期解释重点：
 - 查询目标：在指定学期里评估班级整体表现；
 - 逻辑步骤：学期过滤、班级分组、`AVG(score)` 聚合、排序并截取前 3；
 - 风险提醒：平均分可能受样本量影响，可补充最小样本数约束。
+
+### 从示例目录切换到运行目录
+
+如果你想把某个示例直接切到 `input/` 与 `comments/` 下运行：
+
+```bash
+# 切换到示例 1
+cp example/input1/query.sql input/query.sql
+cp example/input1/comments/*.sql comments/
+
+# 或切换到示例 2
+cp example/input2/query.sql input/query.sql
+cp example/input2/comments/*.sql comments/
+```
 
 ## 示例注释格式
 
