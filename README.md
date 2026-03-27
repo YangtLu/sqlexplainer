@@ -27,13 +27,15 @@ pip install -r requirements.txt
 ```text
 .
 ├── input/
-│   └── query.sql          # 待解释 SQL（必须且仅有 1 个 .sql 文件）
+│   ├── query.sql          # 待解释 SQL（必须且仅有 1 个 .sql 文件）
+│   └── result.csv         # SQL 查询结果（可选，建议提供）
 ├── comments/
 │   ├── student_info.sql   # 表注释与字段注释
 │   └── ...
 ├── example/
 │   ├── input1/            # 示例 1（含 query.sql + comments/）
-│   └── input2/            # 示例 2（含 query.sql + comments/）
+│   ├── input2/            # 示例 2（含 query.sql + comments/）
+│   └── input3/            # 示例 3（三表复杂 JOIN）
 └── output/
 ```
 
@@ -80,11 +82,13 @@ python sql_explainer.py --input-dir input --comments-dir comments --dry-run --co
 - 另外在 `example/` 下提供多套示例目录，便于切换且避免冲突：
   - `example/input1/`（示例 1）
   - `example/input2/`（示例 2）
+  - `example/input3/`（示例 3，三表复杂 JOIN）
 
 ### 示例 1：统计各城市成年学生数量
 
 - SQL：`example/input1/query.sql`
 - 注释：`example/input1/comments/student_info.sql`
+- 结果：`example/input1/result.csv`
 
 预期解释重点：
 - 查询目标：按城市统计成年学生人数；
@@ -95,11 +99,26 @@ python sql_explainer.py --input-dir input --comments-dir comments --dry-run --co
 
 - SQL：`example/input2/query.sql`
 - 注释：`example/input2/comments/exam_scores.sql`
+- 结果：`example/input2/result.csv`
 
 预期解释重点：
 - 查询目标：在指定学期里评估班级整体表现；
 - 逻辑步骤：学期过滤、班级分组、`AVG(score)` 聚合、排序并截取前 3；
 - 风险提醒：平均分可能受样本量影响，可补充最小样本数约束。
+
+### 示例 3：按月按地区分析支付订单 GMV 与品类结构
+
+- SQL：`example/input3/query.sql`
+- 注释：
+  - `example/input3/comments/fact_orders.sql`
+  - `example/input3/comments/fact_order_items.sql`
+  - `example/input3/comments/dim_products.sql`
+- 结果：`example/input3/result.csv`
+
+预期解释重点：
+- 查询目标：统计 2025Q1 各地区每月支付订单表现及电子品类贡献；
+- 逻辑步骤：CTE 过滤支付订单、与明细表内连接、与商品维表左连接、订单粒度聚合再月-地区聚合、`HAVING` 过滤低样本、窗口函数排名；
+- 风险提醒：类目缺失导致 `LEFT JOIN` 空值、`HAVING` 可能筛掉长尾地区、占比字段存在除零保护逻辑。
 
 ### 从示例目录切换到运行目录
 
@@ -109,10 +128,17 @@ python sql_explainer.py --input-dir input --comments-dir comments --dry-run --co
 # 切换到示例 1
 cp example/input1/query.sql input/query.sql
 cp example/input1/comments/*.sql comments/
+cp example/input1/result.csv input/result.csv
 
 # 或切换到示例 2
 cp example/input2/query.sql input/query.sql
 cp example/input2/comments/*.sql comments/
+cp example/input2/result.csv input/result.csv
+
+# 或切换到示例 3
+cp example/input3/query.sql input/query.sql
+cp example/input3/comments/*.sql comments/
+cp example/input3/result.csv input/result.csv
 ```
 
 ## 示例注释格式
