@@ -1,0 +1,5 @@
+region,order_month,paid_order_cnt,buyer_cnt,gmv,avg_order_amount,electronics_gmv,electronics_share,region_rank_in_month
+East,2025-01-01,128,103,982340.5,7674.535,341230.2,0.3472,1
+South,2025-01-01,94,81,745120.0,7926.809,198420.7,0.2663,2
+East,2025-02-01,136,110,1035620.8,7614.859,402116.5,0.3883,1
+North,2025-02-01,88,76,702410.4,7981.936,175603.2,0.25,3
